@@ -25,6 +25,7 @@ try:
     # (Add any new model modules here.)
     import app.models.user   # noqa: F401
     import app.models.item   # noqa: F401
+    import app.models.role 
 except Exception as exc:
     # helpful error to diagnose import problems when alembic runs
     raise RuntimeError(
