@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String
 from app.db.database import Base
 
 
-class Role(Base):
-    __tablename__ = "roles"
+class Permission(Base):
+    __tablename__ = "permissions"
 
     id = Column(Integer, primary_key=True, index=True)
-    role_name = Column(String, unique=True, index=True, nullable=False)
+    permission_name = Column(String, unique=True, index=True, nullable=False)
