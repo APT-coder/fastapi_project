@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
+from sqlalchemy import select, or_
 from app.dependencies import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead
@@ -18,9 +17,18 @@ async def read_users(db: AsyncSession = Depends(get_db)):
 
 @router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def post_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    # uniqueness check
-    existing = await db.execute(select(User).where(User.username == user_in.username))
+    # Uniqueness check for username and phone
+    existing = await db.execute(
+        select(User).where(
+            or_(
+                User.username == user_in.username,
+                User.phone == user_in.phone
+            )
+        )
+    )
+    
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Username exists")
+        raise HTTPException(status_code=400, detail="Username or Phone already exists")
+    
     user = await create_user(db, user_in)
     return UserRead.from_orm(user)
