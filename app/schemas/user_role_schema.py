@@ -1,13 +1,15 @@
+from typing import List
 from pydantic import BaseModel
 
-class UserRoleCreate(BaseModel):
-    user_id: int
-    role_id: int
+from app.schemas.role_schema import RoleRead
+from app.schemas.user import UserRead
 
-class UserRoleRead(BaseModel):
-    id: int
-    user_id: int
-    role_id: int
+class UserRoleCreate(BaseModel):
+    user_id: int | None = None
+    role_ids: List[int]
+    
+class UserRoleRead(UserRead):
+    roles: List[RoleRead]
 
     class Config:
         orm_mode = True
