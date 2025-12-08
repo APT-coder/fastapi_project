@@ -12,18 +12,29 @@ router = APIRouter()
 
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    user = await db.execute(
-        select(User).where(User.phone == request.phone)
+    result = await db.execute(
+        select(User).where(
+            or_(
+                User.username == request.identifier,
+                User.phone == request.identifier,
+                User.email == request.identifier
+            )
+        )
     )
-    user = user.scalar_one_or_none()
+    user = result.scalar_one_or_none()
 
-    if not user or not verify_password(request.password, user.password):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist"
+        )
+    
+    if not verify_password(request.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     # Generate JWT token
-    access_token = create_access_token(data={"sub": user.phone})
+    access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
 
     return LoginResponse(
         access_token=access_token,
@@ -32,18 +43,19 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Uniqueness check for username and phone
+    # Uniqueness check for username with phone or email whichever is provided
     existing = await db.execute(
         select(User).where(
             or_(
                 User.username == user_in.username,
-                User.phone == user_in.phone
+                User.phone == user_in.phone,
+                User.email == user_in.email if user_in.email else False
             )
         )
     )
     
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Username or Phone already exists")
+        raise HTTPException(status_code=400, detail="User already exists")
     
     user = await create_user(db, user_in)
     return UserRead.from_orm(user)

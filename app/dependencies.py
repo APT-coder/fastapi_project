@@ -23,10 +23,10 @@ async def get_current_user(
             detail="Invalid or expired token",
         )
 
-    phone = payload["sub"]
+    email = payload["sub"]
 
     result = await db.execute(
-        select(User).where(User.phone == phone)
+        select(User).where(User.email == email)
     )
     user = result.scalar_one_or_none()
 
@@ -37,3 +37,20 @@ async def get_current_user(
         )
 
     return user
+
+async def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    token = credentials.credentials
+
+    payload = decode_access_token(token)
+
+    if not payload or "user_id" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+    user_id = payload["user_id"]
+    return user_id

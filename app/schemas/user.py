@@ -21,7 +21,7 @@ class UserRead(BaseModel):
         orm_mode = True
 
 class LoginRequest(BaseModel):
-    phone: str
+    identifier: str
     password: str
 
 class LoginResponse(BaseModel):
