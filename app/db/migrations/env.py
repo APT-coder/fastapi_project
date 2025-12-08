@@ -24,7 +24,8 @@ try:
     # IMPORTANT: import modules that declare models so tables are registered on Base.metadata
     # (Add any new model modules here.)
     import app.models.user   # noqa: F401
-    import app.models.item   # noqa: F401
+    import app.models.category
+    import app.models.product   # noqa: F401
     import app.models.role 
     import app.models.permission
     import app.models.role_permission
