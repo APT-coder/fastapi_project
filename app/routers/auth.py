@@ -4,7 +4,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.core.security import verify_password, create_access_token
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_user
 from app.schemas.user import LoginRequest, LoginResponse, UserCreate, UserRead
 from app.services.user_service import create_user
 
@@ -48,3 +48,8 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     user = await create_user(db, user_in)
     return UserRead.from_orm(user)
 
+@router.get("/me", response_model=UserRead)
+async def test_current_user(
+    current_user: User = Depends(get_current_user),
+):
+    return UserRead.from_orm(current_user)
