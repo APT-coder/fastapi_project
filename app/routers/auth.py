@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.enums import UserStatus
 from app.models.user import User
 from app.core.security import verify_password, create_access_token
 from app.dependencies import get_db
@@ -22,6 +22,12 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
+    if user.user_status == UserStatus.INACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is inactive. Please contact support."
+        )
+    
     # Generate JWT token
     access_token = create_access_token(data={"sub": user.phone})
 

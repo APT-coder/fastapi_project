@@ -1,15 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
 from app.dependencies import get_db
-from app.models.user import User
 from app.schemas.api_response_schema import APIResponse
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import UserRead, UserStatusUpdate
 from app.schemas.user_role_schema import UserRoleCreate, UserRoleRead
 from app.services.helper_service import get_user_with_roles
 from app.services.user_role_service import assign_user_role
-from app.services.user_service import get_all_users, create_user
+from app.services.user_service import get_all_users, update_user_status
 
 router = APIRouter()
 
@@ -32,8 +30,28 @@ async def assign(user_id: int, data: UserRoleCreate, db: AsyncSession = Depends(
 
         return APIResponse(
             message=result["message"],
-            data=result["user"]
+            data=UserRoleRead.from_orm(result["user"])
         )
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/{user_id}/status", response_model=APIResponse[UserRoleRead])
+async def update_user_status_by_id(
+    user_id: int,
+    status_update: UserStatusUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = await update_user_status(db, user_id, status_update)
+
+        return APIResponse(
+            message=result["message"],
+            data=UserRoleRead.from_orm(result["user"])
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")

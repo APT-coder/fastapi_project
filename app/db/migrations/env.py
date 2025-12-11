@@ -23,6 +23,7 @@ try:
     from app.core.config import settings  # noqa: E402
     # IMPORTANT: import modules that declare models so tables are registered on Base.metadata
     # (Add any new model modules here.)
+    import app.models.enums
     import app.models.user   # noqa: F401
     import app.models.item   # noqa: F401
     import app.models.role 

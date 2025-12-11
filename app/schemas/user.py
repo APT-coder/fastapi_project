@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+from app.models.enums import UserStatus
+
 
 class UserCreate(BaseModel):
     username: str
@@ -16,6 +18,7 @@ class UserRead(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     email: EmailStr
+    user_status: str
 
     class Config:
         orm_mode = True
@@ -28,3 +31,6 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+class UserStatusUpdate(BaseModel):
+    user_status: UserStatus
