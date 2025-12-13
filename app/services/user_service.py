@@ -1,8 +1,9 @@
 from sqlalchemy import select
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.enums import UserStatus
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserStatusUpdate
 
 async def get_all_users(db: AsyncSession):
     result = await db.execute(select(User))
@@ -21,9 +22,29 @@ async def create_user(db: AsyncSession, user_in: UserCreate):
         full_name=user_in.full_name,
         phone=user_in.phone,
         email=user_in.email,
-        password=hashed_password
+        password=hashed_password,
+        user_status=UserStatus.PENDING.value
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
+
+async def update_user_status(db: AsyncSession, user_id: int, status_update: UserStatusUpdate):
+    # Fetch user
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise ValueError("User not found")
+    
+    # Update status
+    if user.user_status != status_update.user_status:
+        user.user_status = status_update.user_status
+
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "message": f"User {user_id} status updated to '{status_update.user_status}'.",
+        "user": user
+    }

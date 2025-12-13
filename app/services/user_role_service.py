@@ -3,7 +3,7 @@ from sqlalchemy import select, delete
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_role import UserRole
-from app.schemas.user_role_schema import UserRoleCreate, UserRoleRead
+from app.schemas.user_role_schema import UserRoleCreate
 from app.services.helper_service import get_user_with_roles
 
 async def assign_user_role(db: AsyncSession, data: UserRoleCreate):
@@ -42,10 +42,9 @@ async def update_user_roles(db: AsyncSession, data: UserRoleCreate) -> dict:
     if current_roles == input_roles:
         # Load user + roles to return
         user = await get_user_with_roles(db, data.user_id)
-        user_data = UserRoleRead.from_orm(user)
         return {
             "message": f"User '{data.user_id}' already has these roles.",
-            "user": user_data
+            "user": user
         }
 
     # Delete all current roles
@@ -61,8 +60,7 @@ async def update_user_roles(db: AsyncSession, data: UserRoleCreate) -> dict:
 
     # Load user with updated roles
     user = await get_user_with_roles(db, data.user_id)
-    user_data = UserRoleRead.from_orm(user)
     return {
         "message": f"User '{data.user_id}' updated with new roles.",
-        "user": user_data
+        "user": user
     }
