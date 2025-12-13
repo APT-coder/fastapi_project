@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import auth, permissions, roles, users, items
+from app.routers import auth, permissions, products, roles, users
 
 app = FastAPI(title="my_fastapi_project_async")
 
@@ -14,7 +14,7 @@ app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(permissions.router, prefix="/permissions", tags=["Permissions"])
 app.include_router(roles.router, prefix="/roles", tags=["Roles"])
-app.include_router(items.router, prefix="/items", tags=["items"])
+app.include_router(products.router, prefix="/products", tags=["Products"])
 
 @app.get("/")
 async def root():
