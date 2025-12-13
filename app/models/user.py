@@ -1,10 +1,11 @@
 from sqlalchemy import Column, Enum, Integer, String
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.models.audit_mixin import AuditMixin
 from app.models.enums import UserStatus
 
 
-class User(Base):
+class User(AuditMixin, Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

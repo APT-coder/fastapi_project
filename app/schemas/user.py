@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
@@ -19,6 +20,8 @@ class UserRead(BaseModel):
     phone: Optional[str] = None
     email: EmailStr
     user_status: str
+    created_date: datetime
+    updated_date: datetime
 
     class Config:
         orm_mode = True
