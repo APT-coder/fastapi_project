@@ -48,7 +48,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register_user(user_in: UserCreate, 
+                        db: AsyncSession = Depends(get_db), 
+                        current_user: User = Depends(get_current_user)):
     # Uniqueness check for username with phone or email whichever is provided
     existing = await db.execute(
         select(User).where(
@@ -63,7 +65,7 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="User already exists")
     
-    user = await create_user(db, user_in)
+    user = await create_user(db, user_in, current_user.id)
     return UserRead.from_orm(user)
 
 @router.get("/me", response_model=UserRead)

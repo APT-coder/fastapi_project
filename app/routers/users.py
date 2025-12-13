@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import get_current_user, get_db
+from app.models.user import User
 from app.schemas.api_response_schema import APIResponse
 from app.schemas.user import UserRead, UserStatusUpdate
 from app.schemas.user_role_schema import UserRoleCreate, UserRoleRead
@@ -40,10 +41,11 @@ async def assign(user_id: int, data: UserRoleCreate, db: AsyncSession = Depends(
 async def update_user_status_by_id(
     user_id: int,
     status_update: UserStatusUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     try:
-        result = await update_user_status(db, user_id, status_update)
+        result = await update_user_status(db, user_id, status_update, current_user)
 
         return APIResponse(
             message=result["message"],

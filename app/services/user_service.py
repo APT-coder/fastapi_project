@@ -15,7 +15,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-async def create_user(db: AsyncSession, user_in: UserCreate):
+async def create_user(db: AsyncSession, user_in: UserCreate, created_by: int | None = None):
     hashed_password = hash_password(user_in.password)
     user = User(
         username=user_in.username,
@@ -23,14 +23,16 @@ async def create_user(db: AsyncSession, user_in: UserCreate):
         phone=user_in.phone,
         email=user_in.email,
         password=hashed_password,
-        user_status=UserStatus.PENDING.value
+        user_status=UserStatus.PENDING.value,
+        created_by=created_by,
+        updated_by=created_by,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
 
-async def update_user_status(db: AsyncSession, user_id: int, status_update: UserStatusUpdate):
+async def update_user_status(db: AsyncSession, user_id: int, status_update: UserStatusUpdate, current_user: User):
     # Fetch user
     user_result = await db.execute(select(User).where(User.id == user_id))
     user = user_result.scalar_one_or_none()
@@ -40,6 +42,7 @@ async def update_user_status(db: AsyncSession, user_id: int, status_update: User
     # Update status
     if user.user_status != status_update.user_status:
         user.user_status = status_update.user_status
+        user.updated_by = current_user.id
 
     await db.commit()
     await db.refresh(user)
