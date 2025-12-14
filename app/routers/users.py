@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
@@ -19,8 +20,15 @@ async def read_users(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=UserRoleRead)
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
-    user = await get_user_with_roles(db, user_id)
-    return UserRoleRead.from_orm(user)
+    user = await db.execute(select(User).where(or_(User.id == user_id)))
+    
+    if not user.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid User Id"
+        )
+    
+    user_roles = await get_user_with_roles(db, user_id)
+    return UserRoleRead.from_orm(user_roles)
 
 @router.post("/assign-roles/{user_id}", response_model=APIResponse[UserRoleRead])
 async def assign(user_id: int, data: UserRoleCreate, db: AsyncSession = Depends(get_db)):
