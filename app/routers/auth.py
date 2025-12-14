@@ -6,6 +6,7 @@ from app.models.user import User
 from app.core.security import verify_password, create_access_token
 from app.dependencies import get_db, get_current_user
 from app.schemas.user import LoginRequest, LoginResponse, UserCreate, UserRead
+from app.services.helper_service import is_password_expired
 from app.services.user_service import create_user
 
 router = APIRouter()
@@ -37,6 +38,15 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account is inactive. Please contact support."
+        )
+    
+    if is_password_expired(user.password_updated_at):
+        user.user_status = UserStatus.INACTIVE
+        await db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password expired",
         )
     
     # Generate JWT token

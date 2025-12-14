@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 from app.models.enums import UserStatus
@@ -22,6 +22,9 @@ class UserRead(BaseModel):
     user_status: str
     created_date: datetime
     updated_date: datetime
+    password_updated_at: datetime
+    created_by: int | None
+    updated_by: int | None
 
     class Config:
         orm_mode = True
@@ -37,3 +40,7 @@ class LoginResponse(BaseModel):
 
 class UserStatusUpdate(BaseModel):
     user_status: UserStatus
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8)

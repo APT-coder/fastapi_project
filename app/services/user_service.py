@@ -1,6 +1,9 @@
+from datetime import datetime, timezone
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.security import verify_password
 from app.models.enums import UserStatus
 from app.models.user import User
 from app.schemas.user import UserCreate, UserStatusUpdate
@@ -23,6 +26,7 @@ async def create_user(db: AsyncSession, user_in: UserCreate, created_by: int | N
         phone=user_in.phone,
         email=user_in.email,
         password=hashed_password,
+        password_updated_at=datetime.now(timezone.utc),
         user_status=UserStatus.PENDING.value,
         created_by=created_by,
         updated_by=created_by,
@@ -51,3 +55,43 @@ async def update_user_status(db: AsyncSession, user_id: int, status_update: User
         "message": f"User {user_id} status updated to '{status_update.user_status}'.",
         "user": user
     }
+
+async def change_user_password(
+    db: AsyncSession,
+    user_id: int,
+    old_password: str,
+    new_password: str,
+    current_user_id: int,
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if not verify_password(old_password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Old password is incorrect",
+        )
+
+    if verify_password(new_password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from old password",
+        )
+
+    user.password = hash_password(new_password)
+    user.password_updated_at = datetime.now(timezone.utc)
+    user.updated_by = current_user_id
+
+    if user.user_status == UserStatus.INACTIVE:
+        user.user_status = UserStatus.ACTIVE
+
+    await db.commit()
+    await db.refresh(user)
+
+    return {"message": "Password updated successfully"}
