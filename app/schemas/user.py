@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     phone: str
     email: str
-    password: str
+    password: str = Field(..., min_length=8)
 
 
 class UserRead(BaseModel):
