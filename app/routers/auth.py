@@ -6,6 +6,7 @@ from app.models.user import User
 from app.core.security import verify_password, create_access_token
 from app.dependencies import get_db, get_current_user
 from app.schemas.user import LoginRequest, LoginResponse, UserCreate, UserRead
+from app.services.helper_service import is_password_expired
 from app.services.user_service import create_user
 
 router = APIRouter()
@@ -39,6 +40,15 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Your account is inactive. Please contact support."
         )
     
+    if is_password_expired(user.password_updated_at):
+        user.user_status = UserStatus.INACTIVE
+        await db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password expired",
+        )
+    
     # Generate JWT token
     access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
 
@@ -48,7 +58,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register_user(user_in: UserCreate, 
+                        db: AsyncSession = Depends(get_db), 
+                        current_user: User = Depends(get_current_user)):
     # Uniqueness check for username with phone or email whichever is provided
     existing = await db.execute(
         select(User).where(
@@ -63,7 +75,7 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="User already exists")
     
-    user = await create_user(db, user_in)
+    user = await create_user(db, user_in, current_user.id)
     return UserRead.from_orm(user)
 
 @router.get("/me", response_model=UserRead)

@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import get_current_user, get_db
+from app.models.user import User
 from app.schemas.api_response_schema import APIResponse
-from app.schemas.user import UserRead, UserStatusUpdate
+from app.schemas.user import ChangePasswordRequest, UserRead, UserStatusUpdate
 from app.schemas.user_role_schema import UserRoleCreate, UserRoleRead
 from app.services.helper_service import get_user_with_roles
 from app.services.user_role_service import assign_user_role
-from app.services.user_service import get_all_users, update_user_status
+from app.services.user_service import change_user_password, get_all_users, update_user_status
 
 router = APIRouter()
 
@@ -18,8 +20,15 @@ async def read_users(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=UserRoleRead)
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
-    user = await get_user_with_roles(db, user_id)
-    return UserRoleRead.from_orm(user)
+    user = await db.execute(select(User).where(or_(User.id == user_id)))
+    
+    if not user.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid User Id"
+        )
+    
+    user_roles = await get_user_with_roles(db, user_id)
+    return UserRoleRead.from_orm(user_roles)
 
 @router.post("/assign-roles/{user_id}", response_model=APIResponse[UserRoleRead])
 async def assign(user_id: int, data: UserRoleCreate, db: AsyncSession = Depends(get_db)):
@@ -40,10 +49,11 @@ async def assign(user_id: int, data: UserRoleCreate, db: AsyncSession = Depends(
 async def update_user_status_by_id(
     user_id: int,
     status_update: UserStatusUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     try:
-        result = await update_user_status(db, user_id, status_update)
+        result = await update_user_status(db, user_id, status_update, current_user)
 
         return APIResponse(
             message=result["message"],
@@ -55,3 +65,18 @@ async def update_user_status_by_id(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.patch("/{user_id}/change-password", status_code=200)
+async def change_password(
+    user_id: int,
+    payload: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await change_user_password(
+        db=db,
+        user_id=user_id,
+        old_password=payload.old_password,
+        new_password=payload.new_password,
+        current_user_id=current_user.id,
+    )
