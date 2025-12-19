@@ -32,6 +32,7 @@ try:
     import app.models.permission
     import app.models.role_permission
     import app.models.user_role
+    import app.models.document
 except Exception as exc:
     # helpful error to diagnose import problems when alembic runs
     raise RuntimeError(
