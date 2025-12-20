@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.models.audit_mixin import AuditMixin
 
 
-class Permission(Base):
+class Permission(AuditMixin, Base):
     __tablename__ = "permissions"
 
     id = Column(Integer, primary_key=True, index=True)
