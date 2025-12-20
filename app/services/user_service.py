@@ -18,7 +18,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-async def create_user(db: AsyncSession, user_in: UserCreate, created_by: int | None = None):
+async def create_user(db: AsyncSession, user_in: UserCreate):
     hashed_password = hash_password(user_in.password)
     user = User(
         username=user_in.username,
@@ -28,15 +28,13 @@ async def create_user(db: AsyncSession, user_in: UserCreate, created_by: int | N
         password=hashed_password,
         password_updated_at=datetime.now(timezone.utc),
         user_status=UserStatus.PENDING.value,
-        created_by=created_by,
-        updated_by=created_by,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
 
-async def update_user_status(db: AsyncSession, user_id: int, status_update: UserStatusUpdate, current_user: User):
+async def update_user_status(db: AsyncSession, user_id: int, status_update: UserStatusUpdate):
     # Fetch user
     user_result = await db.execute(select(User).where(User.id == user_id))
     user = user_result.scalar_one_or_none()
@@ -46,7 +44,6 @@ async def update_user_status(db: AsyncSession, user_id: int, status_update: User
     # Update status
     if user.user_status != status_update.user_status:
         user.user_status = status_update.user_status
-        user.updated_by = current_user.id
 
     await db.commit()
     await db.refresh(user)
@@ -61,7 +58,6 @@ async def change_user_password(
     user_id: int,
     old_password: str,
     new_password: str,
-    current_user_id: int,
 ):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -86,7 +82,6 @@ async def change_user_password(
 
     user.password = hash_password(new_password)
     user.password_updated_at = datetime.now(timezone.utc)
-    user.updated_by = current_user_id
 
     if user.user_status == UserStatus.INACTIVE:
         user.user_status = UserStatus.ACTIVE

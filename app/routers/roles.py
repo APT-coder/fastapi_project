@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import get_db, security_optional
 from app.schemas.api_response_schema import APIResponse
 from app.services.role_service import create_or_update_role, get_roles
 from app.schemas.role_schema import RoleCreate, RoleRead
 
 router = APIRouter()
 
-@router.post("/", response_model=APIResponse[RoleRead])
+@router.post("/", response_model=APIResponse[RoleRead],
+             dependencies=[Depends(security_optional)])
 async def create_or_update(data: RoleCreate, db: AsyncSession = Depends(get_db)):
     try:
         result = await create_or_update_role(db, data)

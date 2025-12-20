@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_db, security_optional
 from app.schemas.product_schema import ProductCreate, ProductRead
 from app.services.product_service import get_products, create_product
 
@@ -37,7 +37,8 @@ async def read_products(
     ]
 
 @router.post(
-    "/", response_model=ProductRead, status_code=status.HTTP_201_CREATED
+    "/", response_model=ProductRead, status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(security_optional)]
 )
 async def post_product(
     product_in: ProductCreate,
