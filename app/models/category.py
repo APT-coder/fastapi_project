@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.models.audit_mixin import AuditMixin
 
 
-class Category(Base):
+class Category(AuditMixin, Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)

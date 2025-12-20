@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.enums import UserStatus
 from app.models.user import User
 from app.core.security import verify_password, create_access_token
-from app.dependencies import get_db, get_current_user, get_optional_current_user
+from app.dependencies import get_db, get_current_user, security_optional
 from app.schemas.user import LoginRequest, LoginResponse, UserCreate, UserRead
 from app.services.helper_service import is_password_expired
 from app.services.user_service import create_user
@@ -57,10 +57,10 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         user=UserRead.from_orm(user)
     )
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED,
+              dependencies=[Depends(security_optional)])
 async def register_user(user_in: UserCreate, 
-                        db: AsyncSession = Depends(get_db), 
-                        current_user: User | None = Depends(get_optional_current_user)):
+                        db: AsyncSession = Depends(get_db)):
     # Uniqueness check for username with phone or email whichever is provided
     existing = await db.execute(
         select(User).where(
@@ -74,10 +74,8 @@ async def register_user(user_in: UserCreate,
     
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="User already exists")
-    
-    created_by = current_user.id if current_user else None
-    
-    user = await create_user(db, user_in, created_by)
+        
+    user = await create_user(db, user_in)
     return UserRead.from_orm(user)
 
 @router.get("/me", response_model=UserRead)

@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import get_db, security_optional
 from app.schemas.document import DocumentCreate, DocumentRead
 from app.services.document_service import (
     create_document,
@@ -14,7 +14,8 @@ from app.services.document_service import (
 router = APIRouter()
 
 
-@router.post("/", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=DocumentRead, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(security_optional)])
 async def save_document(
     document_in: DocumentCreate,
     db: AsyncSession = Depends(get_db),
