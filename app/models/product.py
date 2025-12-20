@@ -20,3 +20,4 @@ class Product(Base):
     # Relationships
     seller = relationship("User", backref="products")
     category = relationship("Category", back_populates="products")
+    documents = relationship("Document", back_populates="products")
