@@ -70,6 +70,19 @@ async def change_user_password(
             detail="User not found",
         )
 
+    # Block non-local users
+    if not has_provider(user, AuthProvider.local):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password change not allowed for this account",
+        )
+
+    if not user.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No password set for this account",
+        )
+
     if not verify_password(old_password, user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

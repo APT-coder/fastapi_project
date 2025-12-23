@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db, security_optional
+from app.dependencies import get_current_user, get_db, security_optional
 from app.models.user import User
 from app.schemas.api_response_schema import APIResponse
 from app.schemas.user import ChangePasswordRequest, UserRead, UserStatusUpdate
@@ -67,16 +67,15 @@ async def update_user_status_by_id(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.patch("/{user_id}/change-password", status_code=200,
-              dependencies=[Depends(security_optional)])
+@router.patch("/me/change-password", status_code=200)
 async def change_password(
-    user_id: int,
     payload: ChangePasswordRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return await change_user_password(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
         old_password=payload.old_password,
         new_password=payload.new_password,
     )
