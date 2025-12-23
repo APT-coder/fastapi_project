@@ -2,7 +2,7 @@ from sqlalchemy import Column, DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 from app.models.audit_mixin import AuditMixin
-from app.models.enums import UserStatus
+from app.models.enums import AuthProvider, UserStatus
 
 
 class User(AuditMixin, Base):
@@ -11,9 +11,10 @@ class User(AuditMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=True)
-    phone = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)
+    password = Column(String, nullable=True)
+    auth_providers = Column(String, nullable=False, default=AuthProvider.local.value)
     password_updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

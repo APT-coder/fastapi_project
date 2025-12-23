@@ -44,3 +44,6 @@ class UserStatusUpdate(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=8)
     new_password: str = Field(..., min_length=8)
+
+class GoogleLoginRequest(BaseModel):
+    token: str
