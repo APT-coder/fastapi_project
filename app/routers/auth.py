@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from urllib.parse import urlencode
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.strategies.google import GoogleAuthStrategy
 from app.auth.strategies.local import LocalAuthStrategy
+from app.auth.token_service import issue_login_response
+from app.core.config import settings
+from app.core.google_auth import exchange_code_for_token
 from app.models.user import User
-from app.core.security import create_access_token
 from app.dependencies import get_db, get_current_user, security_optional
 from app.schemas.user import GoogleLoginRequest, LoginRequest, LoginResponse, UserCreate, UserRead
 from app.services.user_service import create_user
@@ -16,17 +19,23 @@ async def login(
     request: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    strategy = LocalAuthStrategy()
-    user = await strategy.authenticate(db, request)
+    user = await LocalAuthStrategy().authenticate(db, request)
+    return issue_login_response(user)
 
-    access_token = create_access_token(
-        data={"sub": user.email, "user_id": user.id}
-    )
 
-    return LoginResponse(
-        access_token=access_token,
-        user=UserRead.from_orm(user),
-    )
+@router.get("/login/google/url")
+async def get_google_login_url():
+    params = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+
+    url = f"{settings.GOOGLE_AUTH_BASE_URL}?{urlencode(params)}"
+    return {"url": url}
 
 
 @router.post("/login/google", response_model=LoginResponse)
@@ -34,17 +43,31 @@ async def google_login(
     request: GoogleLoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    strategy = GoogleAuthStrategy()
-    user = await strategy.authenticate(db, request)
+    user = await GoogleAuthStrategy().authenticate(db, request)
+    return issue_login_response(user)
 
-    access_token = create_access_token(
-        data={"sub": user.email, "user_id": user.id}
+
+@router.get("/login/google/callback", response_model=LoginResponse)
+async def google_login_callback(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    code = request.query_params.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing code")
+
+    token_response = await exchange_code_for_token(code)
+    id_token = token_response.get("id_token")
+
+    if not id_token:
+        raise HTTPException(status_code=400, detail="No id_token returned")
+
+    user = await GoogleAuthStrategy().authenticate(
+        db,
+        data=type("Obj", (), {"token": id_token})()
     )
 
-    return LoginResponse(
-        access_token=access_token,
-        user=UserRead.from_orm(user),
-    )
+    return issue_login_response(user)
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED,
