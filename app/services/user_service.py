@@ -3,8 +3,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.auth.provider_utils import has_provider
 from app.core.security import verify_password
-from app.models.enums import UserStatus
+from app.models.enums import AuthProvider, UserStatus
 from app.models.user import User
 from app.schemas.user import UserCreate, UserStatusUpdate
 
@@ -28,6 +29,7 @@ async def create_user(db: AsyncSession, user_in: UserCreate):
         password=hashed_password,
         password_updated_at=datetime.now(timezone.utc),
         user_status=UserStatus.PENDING.value,
+        auth_providers=AuthProvider.local.value
     )
     db.add(user)
     await db.commit()
@@ -66,6 +68,19 @@ async def change_user_password(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+
+    # Block non-local users
+    if not has_provider(user, AuthProvider.local):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password change not allowed for this account",
+        )
+
+    if not user.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No password set for this account",
         )
 
     if not verify_password(old_password, user.password):
