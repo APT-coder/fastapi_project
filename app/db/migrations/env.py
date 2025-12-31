@@ -23,8 +23,16 @@ try:
     from app.core.config import settings  # noqa: E402
     # IMPORTANT: import modules that declare models so tables are registered on Base.metadata
     # (Add any new model modules here.)
+    import app.models.enums
+    import app.models.audit_mixin
     import app.models.user   # noqa: F401
-    import app.models.item   # noqa: F401
+    import app.models.category
+    import app.models.product   # noqa: F401
+    import app.models.role 
+    import app.models.permission
+    import app.models.role_permission
+    import app.models.user_role
+    import app.models.document
 except Exception as exc:
     # helpful error to diagnose import problems when alembic runs
     raise RuntimeError(
