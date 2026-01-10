@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.models.enums import DocumentType, DocumentStatus
 
 
@@ -22,5 +22,4 @@ class DocumentRead(BaseModel):
     product_id: int
     created_date: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
