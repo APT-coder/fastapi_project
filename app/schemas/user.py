@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
     phone: str
     email: EmailStr
     password: str = Field(..., min_length=8)
+    otp: str
 
 
 class UserRead(BaseModel):

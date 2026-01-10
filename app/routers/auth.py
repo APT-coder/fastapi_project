@@ -10,6 +10,7 @@ from app.core.google_auth import exchange_code_for_token
 from app.models.user import User
 from app.dependencies import get_db, get_current_user, security_optional
 from app.schemas.user import GoogleLoginRequest, LoginRequest, LoginResponse, UserCreate, UserRead
+from app.services.otp_service import verify_otp
 from app.services.user_service import create_user
 
 router = APIRouter()
@@ -74,6 +75,13 @@ async def google_login_callback(
               dependencies=[Depends(security_optional)])
 async def register_user(user_in: UserCreate, 
                         db: AsyncSession = Depends(get_db)):
+    
+    if not verify_otp(user_in.email, user_in.otp):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP",
+        )
+    
     # Uniqueness check for username with phone or email whichever is provided
     existing = await db.execute(
         select(User).where(
