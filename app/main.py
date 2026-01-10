@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import auth, documents, email, otp, permissions, products, roles, users
+from app.routers import auth, documents, email, feedback, otp, permissions, products, roles, users
 
 app = FastAPI(title="my_fastapi_project_async")
 
@@ -18,7 +18,7 @@ app.include_router(products.router, prefix="/products", tags=["Products"])
 app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 app.include_router(email.router, prefix="/email", tags=["Email"])
 app.include_router(otp.router, prefix="/otp", tags=["OTP"])
-
+app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 
 
 @app.get("/")
