@@ -17,7 +17,7 @@ async def send_mail(
             recipients=recipients,
             subject=subject,
             body=body,
-            attachments=attachments,
+            attachments=attachments or [],
         )
         return {"message": "Email sent successfully"}
     except Exception as e:
