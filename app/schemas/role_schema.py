@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from app.schemas.permission_schema import PermissionRead
 
@@ -12,5 +12,4 @@ class RoleRead(RoleBase):
     id: int
     permissions: List[PermissionRead]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 
 from app.models.enums import UserStatus
@@ -26,8 +26,7 @@ class UserRead(BaseModel):
     created_by: int | None
     updated_by: int | None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginRequest(BaseModel):
     identifier: str
