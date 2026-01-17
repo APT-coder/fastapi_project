@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from passlib.context import CryptContext
@@ -8,6 +8,7 @@ from app.core.security import verify_password
 from app.models.enums import AuthProvider, UserStatus
 from app.models.user import User
 from app.schemas.user import UserCreate, UserStatusUpdate
+from app.services.helper_service import PASSWORD_EXPIRY_DAYS
 
 async def get_all_users(db: AsyncSession):
     result = await db.execute(select(User))
@@ -105,3 +106,24 @@ async def change_user_password(
     await db.refresh(user)
 
     return {"message": "Password updated successfully"}
+
+
+async def deactivate_expired_password_users(db):
+    expiry_time = datetime.now(timezone.utc) - timedelta(days=PASSWORD_EXPIRY_DAYS)
+
+    result = await db.execute(
+        select(User).where(
+            User.password_updated_at < expiry_time,
+            User.user_status != UserStatus.INACTIVE,
+        )
+    )
+
+    users = result.scalars().all()
+
+    for user in users:
+        user.user_status = UserStatus.INACTIVE
+
+    if users:
+        await db.commit()
+
+    return len(users)

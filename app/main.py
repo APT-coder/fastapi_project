@@ -1,9 +1,14 @@
+import asyncio
 from fastapi import FastAPI
+from app.background.password_expiry_worker import password_expiry_worker
 from app.routers import auth, documents, email, feedback, otp, permissions, products, roles, users
 
 app = FastAPI(title="my_fastapi_project_async")
 
 @app.on_event("startup")
+async def start_password_expiry_worker():
+    asyncio.create_task(password_expiry_worker())
+    
 async def startup():
     # If needed (Alembic recommended instead)
     # async with engine.begin() as conn:
